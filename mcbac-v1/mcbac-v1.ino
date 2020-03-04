@@ -17,6 +17,7 @@
 //
 
 #include <Wire.h>
+#include <stdarg.h>
 #include "LiquidCrystal_I2C.h"
 
 #define MCBAC_VERSION "v1.0.0-beta-1"
@@ -44,6 +45,7 @@ void setup() {
   // Initialize the LCD
   lcd.begin();
 
+  // Rotary encoder
   attachInterrupt(0, cursorCW, RISING);
   attachInterrupt(1, cursorCC, RISING);
 
@@ -57,7 +59,7 @@ void setup() {
   lcd.print(MCBAC_VERSION);
   lcd.setCursor(0, 1);
   lcd.print(MCBAC_DATE);
-  delay(2500);
+  delay(250);
   lcd.clear();
   lcd.setCursor(1, 0);
   lcd.print("Copyright WestleyR");
@@ -67,13 +69,13 @@ void setup() {
   lcd.print("licensed under The");
   lcd.setCursor(1, 3);
   lcd.print("Clear BSD License.");
-  delay(3500);
+  delay(350);
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("https://github.com/");
   lcd.setCursor(3, 1);
   lcd.print("WestleyR/mcbac");
-  delay(2500);
+  delay(250);
   lcd.clear();
   lcd.setCursor(0, 0);
 }
@@ -660,6 +662,62 @@ void chargeLiBattery(int batteryRun, String batteryName, int batteryCurrent, flo
   cursorCount = 0;
 }
 
+int selectFunction(int num, const char* list, ...) {
+  int batteryRun = 0;
+
+  va_list nameValues;
+  va_start(nameValues, list);
+
+  int lineCount = 0;
+
+  lcd.clear();
+
+  // Print the options
+  for (int i = 0; i < num; i++) {
+    lcd.setCursor(2, lineCount);
+    lcd.print(list);
+    lineCount++;
+    list = va_arg(nameValues, char*);
+  }
+  va_end(nameValues);
+
+  while (digitalRead(backB) == HIGH) {
+    if (cursorCount == 0) {
+      setLCDPointer(0);
+      updateDisplay = 0;
+      batteryRun = 1;
+    } else if (cursorCount == 1) {
+      setLCDPointer(1);
+      updateDisplay = 0;
+      batteryRun = 2;
+    } else if (cursorCount == 2) {
+      setLCDPointer(2);
+      updateDisplay = 0;
+      batteryRun = 3;
+    } else if (cursorCount == 3) {
+      setLCDPointer(3);
+      updateDisplay = 0;
+      batteryRun = 4;
+    } else {
+      cursorCount = 4;
+      //updateDisplay = 1;
+    }
+    checkButtons();
+    if (enterB == 1) {
+      enterB = 0;
+      cursorCount = 0;
+      updateDisplay = 1;
+      if (batteryRun == 1) { // Charge
+        chargeLiBattery(batteryRun, batteryName, batteryCurrent, batteryEndVolts, safetyTimer, batteryCutoff, false);
+      } else if (batteryRun == 2) { // Discharge
+        chargeLiBattery(2, batteryName, batteryCurrent, batteryNom, safetyTimer, batteryCutoff, false);
+      }
+    }
+  }
+
+  return batteryRun;
+}
+
 void configCharge(int batteryType) {
   if (batteryType == 1) {
     // Lithium battery
@@ -769,21 +827,27 @@ void configCharge(int batteryType) {
       }
       checkButtons();
 
+      const char* CHARGE = "Charge";
+      const char* DISCHARGE = "Discharge";
+      const char* CYCLE = "Cycle test";
+      const char* SOCTEST = "SoC test";
+
       if (enterB == 1) {
         enterB = 0;
         cursorCount = 0;
         updateDisplay = 0;
         // Ask for charge, discharge, or cycle test
-        lcd.clear();
-        lcd.setCursor(0, 0);
-        lcd.print("  Charge");
-        lcd.setCursor(0, 1);
-        lcd.print("  Discharge");
-        lcd.setCursor(0, 2);
-        lcd.print("  Cycle test");
-        lcd.setCursor(0, 3);
-        lcd.print("  SoC test");
-        while (digitalRead(backB) == HIGH) {
+        batteryRun = selectFunction(4, CHARGE, DISCHARGE, CYCLE, SOCTEST);
+        //        lcd.clear();
+        //        lcd.setCursor(0, 0);
+        //        lcd.print("  Charge");
+        //        lcd.setCursor(0, 1);
+        //        lcd.print("  Discharge");
+        //        lcd.setCursor(0, 2);
+        //        lcd.print("  Cycle test");
+        //        lcd.setCursor(0, 3);
+        //        lcd.print("  SoC test");
+        /*while (digitalRead(backB) == HIGH) {
           if (cursorCount == 0) {
             setLCDPointer(0);
             updateDisplay = 0;
@@ -816,8 +880,8 @@ void configCharge(int batteryType) {
             }
 
             return;
-          }
-        }
+          }*/
+        //}
       }
     }
     cursorCount = 0;
