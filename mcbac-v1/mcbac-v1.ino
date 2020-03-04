@@ -177,8 +177,50 @@ void chargeBattery(int prog) {
   }
 }
 
+void setLCDPointer(int line) {
+  if (line == 0) {
+    lcd.setCursor(0, 0);
+    lcd.print("> ");
+    lcd.setCursor(0, 1);
+    lcd.print("  ");
+    lcd.setCursor(0, 2);
+    lcd.print("  ");
+    lcd.setCursor(0, 3);
+    lcd.print("  ");
+  } else if (line == 1) {
+    lcd.setCursor(0, 0);
+    lcd.print("  ");
+    lcd.setCursor(0, 1);
+    lcd.print("> ");
+    lcd.setCursor(0, 2);
+    lcd.print("  ");
+    lcd.setCursor(0, 3);
+    lcd.print("  ");
+  } else if (line == 2) {
+    lcd.setCursor(0, 0);
+    lcd.print("  ");
+    lcd.setCursor(0, 1);
+    lcd.print("  ");
+    lcd.setCursor(0, 2);
+    lcd.print("> ");
+    lcd.setCursor(0, 3);
+    lcd.print("  ");
+  } else if (line == 3) {
+    lcd.setCursor(0, 0);
+    lcd.print("  ");
+    lcd.setCursor(0, 1);
+    lcd.print("  ");
+    lcd.setCursor(0, 2);
+    lcd.print("  ");
+    lcd.setCursor(0, 3);
+    lcd.print("> ");
+  }
+}
+
 int batteryRun;
 int batteryCurrent = 100;
+int safetyTimer = 120;
+int safetyCuttoff = 5000;
 float batteryLIPOEndVolts = 4.15;
 
 void configCharge(int batteryType) {
@@ -240,30 +282,15 @@ void configCharge(int batteryType) {
         lcd.print("  Cycle test");
         while (digitalRead(backB) == HIGH) {
           if (cursorCount == 0) {
-            lcd.setCursor(0, 1);
-            lcd.print("  ");
-            lcd.setCursor(0, 2);
-            lcd.print("  ");
-            lcd.setCursor(0, 0);
-            lcd.print("> ");
+            setLCDPointer(0);
             updateDisplay = 0;
             batteryRun = 1;
           } else if (cursorCount == 1) {
-            lcd.setCursor(0, 0);
-            lcd.print("  ");
-            lcd.setCursor(0, 2);
-            lcd.print("  ");
-            lcd.setCursor(0, 1);
-            lcd.print("> ");
+            setLCDPointer(1);
             updateDisplay = 0;
             batteryRun = 2;
           } else if (cursorCount == 2) {
-            lcd.setCursor(0, 0);
-            lcd.print("  ");
-            lcd.setCursor(0, 1);
-            lcd.print("  ");
-            lcd.setCursor(0, 2);
-            lcd.print("> ");
+            setLCDPointer(2);
             updateDisplay = 0;
             batteryRun = 3;
           } else {
@@ -284,25 +311,21 @@ void configCharge(int batteryType) {
               lcd.setCursor(0, 1);
               lcd.print("  End volts: ");
               lcd.print(batteryLIPOEndVolts);
+              lcd.setCursor(0, 2);
+              lcd.print("  Safety timer: ");
+              lcd.print(safetyTimer);
+              lcd.setCursor(0, 3);
+              lcd.print("  Safety cutoff: ");
+              lcd.print(safetyCuttoff);
               int batteryAdjust;
 
               while (digitalRead(backB) == HIGH) {
                 if (cursorCount == 0) {
-                  lcd.setCursor(0, 1);
-                  lcd.print("  ");
-                  lcd.setCursor(0, 2);
-                  lcd.print("  ");
-                  lcd.setCursor(0, 0);
-                  lcd.print("> ");
+                  setLCDPointer(0);
                   updateDisplay = 0;
                   batteryAdjust = 1;
                 } else if (cursorCount == 1) {
-                  lcd.setCursor(0, 0);
-                  lcd.print("  ");
-                  lcd.setCursor(0, 2);
-                  lcd.print("  ");
-                  lcd.setCursor(0, 1);
-                  lcd.print("> ");
+                  setLCDPointer(1);
                   updateDisplay = 0;
                   batteryAdjust = 2;
                 } else {
@@ -314,50 +337,58 @@ void configCharge(int batteryType) {
                   enterB = 0;
                   if (batteryAdjust == 1) {
                     cursorCount = 10;
-                    //lcd.cursor();
                     lcd.setCursor(16, 0);
                     lcd.blink();
+                    // Wait for the user to set the charge current
                     while (digitalRead(backB) == HIGH) {
                       if (updateDisplay == 1) {
                         lcd.setCursor(12, 0);
                         lcd.print("        ");
                         lcd.setCursor(13, 0);
-                        lcd.print(cursorCount*10);
+                        lcd.print(cursorCount * 10);
                         updateDisplay = 0;
                       }
                       checkButtons();
                       if (enterB == 1) {
-                        batteryCurrent = cursorCount*10;
+                        batteryCurrent = cursorCount * 10;
                         enterB = 0;
                         batteryAdjust = 0;
                         break;
                       }
                     }
                   } else if (batteryAdjust == 2) {
-                    cursorCount = 100;
+                    // Set the end voltage
+                    enterB = 0;
+                    cursorCount = 128;
+                    int lastCount = cursorCount;
+                    lcd.setCursor(16, 1);
+                    lcd.blink();
+                    // Wait for the user to set the end voltage
                     while (digitalRead(backB) == HIGH) {
-                      batteryCurrent = cursorCount;
+                      if (updateDisplay == 1) {
+                        lcd.setCursor(12, 1);
+                        lcd.print("        ");
+                        lcd.setCursor(14, 1);
+                        lcd.print(batteryLIPOEndVolts);
+                        if (lastCount > cursorCount) {
+                          batteryLIPOEndVolts -= 0.01;
+                          lastCount = cursorCount;
+                        } else if (lastCount < cursorCount) {
+                          batteryLIPOEndVolts += 0.01;
+                          lastCount = cursorCount;
+                        }
+                        updateDisplay = 0;
+                      }
                       checkButtons();
                       if (enterB == 1) {
+                        batteryCurrent = cursorCount / 10;
                         enterB = 0;
                         batteryAdjust = 0;
                         break;
                       }
                     }
                   }
-                } else if (enterB == 1) {
-                  enterB = 0;
-                  if (batteryAdjust == 1) {
-                    cursorCount = 100;
-                    while (digitalRead(backB) == HIGH) {
-                      batteryCurrent = cursorCount;
-                      checkButtons();
-                      if (enterB == 1) {
-                        enterB = 0;
-                        break;
-                      }
-                    }
-                  }
+                  // Maybe run: lcd.noBlink(); here
                 }
               }
             } else if (batteryRun == 2) {
