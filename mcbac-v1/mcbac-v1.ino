@@ -240,14 +240,19 @@ void setLCDPointer(int line) {
   }
 }
 
+// Battery values
 int batteryRun;
 int batteryCurrent = 100;
 int safetyTimer = 120;
 int batteryCutoff = 100;
+int batteryCutoffMAH = 5000;
+int batteryType;
 float batteryNom;
 float batteryEndVolts;
+float batteryVoltLimit = 4.00;
+float batteryDeltaV = 5.00;
 String batteryName;
-int batteryType;
+bool batteryPulseCharge = true;
 
 void chargeCVBattery() {
   while (digitalRead(buttonBack) == HIGH) {
@@ -338,7 +343,7 @@ void dischargeCC(String batteryName, int batteryCurrent, float batteryEndVolts, 
   updateDisplay = 1;
 }
 
-void chargeLiBattery() {  
+void chargeLiBattery() {
   if (batteryType == 1) { // Lithium type
     if (batteryRun == 1) {
       // Charge
@@ -550,6 +555,41 @@ float changeFloat(int line, int msglen, float before) {
   return ret;
 }
 
+float changeFloat05(int line, int msglen, float before) {
+  float ret = before;
+
+  cursorCount = 128;
+  int lastCount = cursorCount;
+  lcd.setCursor(msglen + 6, line);
+  lcd.blink();
+  // Wait for the user to set the end voltage
+  while (digitalRead(buttonBack) == HIGH) {
+    if (updateDisplay == 1) {
+      if (lastCount > cursorCount) {
+        ret -= 0.05;
+        lastCount = cursorCount;
+      } else if (lastCount < cursorCount) {
+        ret += 0.05;
+        lastCount = cursorCount;
+      }
+      lcd.setCursor(msglen + 2, line);
+      lcd.print("        ");
+      lcd.setCursor(msglen + 3, line);
+      lcd.print(ret);
+      Serial.println(ret);
+      updateDisplay = 0;
+    }
+    checkButtons();
+    if (enterB == 1) {
+      enterB = 0;
+      break;
+    }
+  }
+  lcd.noBlink();
+
+  return ret;
+}
+
 int setCVFunc() {
   int batteryAdjust;
 
@@ -635,11 +675,6 @@ int setCVFunc() {
   return 1;
 }
 
-float batteryVoltLimit;
-float batteryDeltaV;
-int batteryCutoffMAH = 5000;
-bool batteryPulseCharge = true;
-
 int setCCFunc() {
   int batteryAdjust;
   int updateScroll = 1;
@@ -709,7 +744,7 @@ int setCCFunc() {
 
       lcd.setCursor(2, 3);
       lcd.print("Cutoff MAH ");
-      lcd.print(batteryCutoff);
+      lcd.print(batteryCutoffMAH);
       updateScroll = 0;
     } else if (updateScroll == 2) {
       // Shift the display down
@@ -736,7 +771,7 @@ int setCCFunc() {
         batteryVoltLimit = changefloatHalf(1, 10, batteryVoltLimit);
         batteryAdjust = 0;
       } else if (batteryAdjust == 3) { // Delta V
-        batteryDeltaV = changeFloat(2, 7, batteryDeltaV);
+        batteryDeltaV = changeFloat05(2, 7, batteryDeltaV);
         batteryAdjust = 0;
       } else if (batteryAdjust == 4) { // Cutoff MAH
         batteryCutoffMAH = changeInt10(3, 10, batteryCutoffMAH);
@@ -762,7 +797,92 @@ int setCCFunc() {
   return 1;
 }
 
+// The Constent current discharge setup
 int setCCDFunc() {
+  int batteryAdjust;
+  int updateScroll = 1;
+  int page = 1;
+
+  while (digitalRead(buttonBack) == HIGH) {
+    if (cursorCount == 0) {
+      setLCDPointer(0);
+      updateDisplay = 0;
+      batteryAdjust = 1;
+    } else if (cursorCount == 1) {
+      setLCDPointer(1);
+      updateDisplay = 0;
+      batteryAdjust = 2;
+    } else if (cursorCount == 2) {
+      setLCDPointer(2);
+      updateDisplay = 0;
+      batteryAdjust = 3;
+    } else if (cursorCount == 3) {
+      setLCDPointer(3);
+      updateDisplay = 0;
+      batteryAdjust = 4;
+    } else if (cursorCount == 6) {
+      lcd.setCursor(0, 0);
+      lcd.print("  ");
+      lcd.setCursor(0, 1);
+      lcd.print("G ");
+      lcd.setCursor(0, 2);
+      lcd.print("O ");
+      lcd.setCursor(0, 3);
+      lcd.print("  ");
+      updateDisplay = 0;
+      batteryAdjust = 7;
+    } else {
+      cursorCount = 6;
+    }
+
+    if (updateScroll == 1) {
+      lcd.clear();
+      lcd.setCursor(2, 0);
+      lcd.print("Current MA ");
+      lcd.print(batteryCurrent);
+
+      lcd.setCursor(2, 1);
+      lcd.print("Cutoff V ");
+      lcd.print(batteryEndVolts);
+
+      lcd.setCursor(2, 2);
+      lcd.print("Cutoff MAH ");
+      lcd.print(batteryCutoff);
+
+      lcd.setCursor(2, 3);
+      lcd.print("Safety timer ");
+      lcd.print(safetyTimer);
+      updateScroll = 0;
+    }
+
+    checkButtons();
+    if (backB == 1) break; // return 1 as user pushed the back button
+    if (enterB == 1) {
+      int lastCursorState = cursorCount;
+      enterB = 0;
+      if (batteryAdjust == 1) { // Current MA
+        batteryCurrent = changeInt10(0, 10, batteryCurrent);
+        batteryAdjust = 0;
+      } else if (batteryAdjust == 2) { // Cutoff V
+        batteryEndVolts = changeFloat(1, 8, batteryEndVolts);
+        batteryAdjust = 0;
+      } else if (batteryAdjust == 3) { // Cutoff MAH
+        batteryCutoffMAH = changeInt10(2, 10, batteryCutoffMAH);
+        batteryAdjust = 0;
+      } else if (batteryAdjust == 4) { // Safety timer
+        safetyTimer = changeInt10(3, 12, safetyTimer);
+        batteryAdjust = 0;
+      } else if (batteryAdjust == 7) { // GO
+        enterB = 0;
+        updateDisplay = 1;
+        cursorCount = 0;
+        // User said to start the function
+        return 0;
+      }
+      cursorCount = lastCursorState;
+    }
+  }
+  updateDisplay = 1;
 
   return 1;
 }
@@ -818,12 +938,10 @@ int selectFunction(int num, const char* list, ...) {
   return batteryRun;
 }
 
-
 const char* CHARGE = "Charge";
 const char* DISCHARGE = "Discharge";
 const char* CYCLE = "Cycle test";
 const char* SOCTEST = "SoC test";
-
 
 void configCharge() {
   if (batteryType == 1) {
@@ -955,8 +1073,8 @@ void configCharge() {
       if (updateDisplay == 1) {
         if (cursorCount == 0) {
           lcd.clear();
-          lcd.setCursor(0, 0);
-          batteryName = "Nimh";
+          lcd.setCursor(8, 0);
+          batteryName = "NiMH";
           batteryNom = 1.2;
           batteryEndVolts = 5;
           lcd.print(batteryName);
@@ -970,8 +1088,8 @@ void configCharge() {
           batteryProg = 1;
         } else if (cursorCount == 1) {
           lcd.clear();
-          lcd.setCursor(0, 0);
-          batteryName = "Nicd";
+          lcd.setCursor(8, 0);
+          batteryName = "NiCD";
           batteryNom = 1.2;
           batteryEndVolts = 5;
           lcd.print(batteryName);
