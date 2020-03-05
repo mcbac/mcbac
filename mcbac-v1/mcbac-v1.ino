@@ -31,6 +31,7 @@
 #define R_CW 2
 #define R_CC 3
 
+// 20x4 LCD with I2C adaptor
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 
 void setup() {
@@ -49,10 +50,10 @@ void setup() {
   attachInterrupt(0, cursorCW, RISING);
   attachInterrupt(1, cursorCC, RISING);
 
-  // For debugging
+  // For debugging/logging
   Serial.begin(9600);
 
-  // Turn on the blacklight and print a message.
+  // Print version, and info
   lcd.backlight();
   lcd.setCursor(0, 0);
   lcd.print("MCBAC ");
@@ -69,7 +70,7 @@ void setup() {
   lcd.print("licensed under The");
   lcd.setCursor(1, 3);
   lcd.print("Clear BSD License.");
-  delay(350);
+  delay(250);
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("https://github.com/");
@@ -156,48 +157,8 @@ int checkButtons() {
     delay(150);
     return 4;
   }
-  // Maybe dont do this:
   resetAllButtons();
   return 0;
-}
-
-// The function that charges a battery
-void chargeLi() {
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  // Stop if the back button is pushed
-  while (digitalRead(buttonBack) == HIGH) {
-    checkButtons();
-  }
-
-  // Print the results for the charge
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Results:");
-  lcd.setCursor(0, 1);
-  lcd.print("nothing here...");
-
-  // Wait for the user to see it
-  while (digitalRead(buttonBack) == HIGH) {
-    if (checkButtons() != 0) {
-      // A button was pushed
-      resetAllButtons();
-      break;
-    }
-  }
-}
-
-void chargeBattery(int prog) {
-  if (prog == 1) {
-    chargeLi();
-  } else if (prog == 2) {
-    // TODO:
-  } else {
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("unknown battery type");
-    lcd.print(prog);
-  }
 }
 
 void setLCDPointer(int line) {
@@ -938,6 +899,7 @@ int selectFunction(int num, const char* list, ...) {
   return batteryRun;
 }
 
+// TODO: this may not be needed
 const char* CHARGE = "Charge";
 const char* DISCHARGE = "Discharge";
 const char* CYCLE = "Cycle test";
