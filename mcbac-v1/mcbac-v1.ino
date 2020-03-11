@@ -1,6 +1,6 @@
 // Created by: WestleyR
 // Email(s): westleyr@nym.hush.com
-// Last modifyed date: Mar 4, 2020
+// Last modifyed date: Mar 10, 2020
 // Version-1.0.0
 //
 // This file is part of the mcbac software:
@@ -197,7 +197,7 @@ void setIOut(int ma) {
   // 4096 is the max value
 
   int i = ma * 2;
-  dacVout.setVoltage(i, false);
+  dacIout.setVoltage(i, false);
 }
 
 void setLCDPointer(int line) {
@@ -254,6 +254,73 @@ float batteryDeltaV = 5.00;
 String batteryName;
 bool batteryPulseCharge = true;
 
+void setDecadeValue(float *value, float inc, bool dec, int cur, int line) {
+  cursorCount = 128;
+  int lastCount = cursorCount;
+  int decadeCount = 100;
+  int blinkCursor;
+  lcd.setCursor(cur, line);
+  lcd.cursor();
+  // Wait for the user to set the end voltage
+  while (digitalRead(buttonBack) == HIGH) {
+    if (updateDisplay == 1) {
+      if (lastCount > cursorCount) {
+        *value -= (inc * decadeCount);
+        lastCount = cursorCount;
+        if (dec) { // If theres a decimal, then we want to adjust the voltage
+          setVOut(*value);
+        } else {
+          setIOut(*value);
+        }
+        updateDisplay = 0;
+      } else if (lastCount < cursorCount) {
+        *value += (inc * decadeCount);
+        lastCount = cursorCount;
+        if (dec) {
+          setVOut(*value);
+        } else {
+          setIOut(*value);
+        }
+        updateDisplay = 0;
+      }
+
+      lcd.setCursor(cur, line);
+      if (dec) {
+        lcd.print(*value);
+      } else {
+        lcd.print((int)*value);
+      }
+      lcd.print(" ");
+      if (decadeCount == 100) {
+        blinkCursor = cur;
+      } else if (decadeCount == 10) {
+        blinkCursor = cur + 1;
+        if (dec) blinkCursor++;
+      } else if (decadeCount == 1) {
+        blinkCursor = cur + 2;
+        if (dec) blinkCursor++;
+      }
+      if (dec) {
+        if (*value >= 10) blinkCursor++;
+      } else {
+        if (*value >= 1000) blinkCursor++;
+      }
+      lcd.setCursor(blinkCursor, line);
+
+      updateDisplay = 0;
+    }
+    checkButtons();
+    if (enterB == 1) {
+      enterB = 0;
+      decadeCount /= 10;
+      updateDisplay = 1;
+      if (decadeCount < 1) break;
+    }
+  }
+  lcd.noCursor();
+  delay(250);
+}
+
 void powerSupply() {
   int batteryAdjust;
   int updateOutput = 1;
@@ -293,76 +360,19 @@ void powerSupply() {
       batteryAdjust = 2;
     } else {
       cursorCount = 1;
-      //updateDisplay = 1;
     }
     checkButtons();
-    //if (backB == 1) break; // return 1 as user pushed the back button
     if (enterB == 1) {
       int lastCursorState = cursorCount;
       enterB = 0;
       if (batteryAdjust == 1) { // Volts
-        //batteryEndVolts = changeFloat(1, 11, batteryEndVolts);
-
-        cursorCount = 128;
-        int lastCount = cursorCount;
-        int decadeCount = 100;
-        int blinkCursor;
-        lcd.setCursor(14, 1);
-        lcd.blink();
-        // Wait for the user to set the end voltage
-        while (digitalRead(buttonBack) == HIGH) {
-          if (updateDisplay == 1) {
-            if (decadeCount == 100) {
-              blinkCursor = 14;
-            } else if (decadeCount == 10) {
-              blinkCursor = 16;
-            } else if (decadeCount == 1) {
-              blinkCursor = 17;
-            }
-            if (batteryEndVolts >= 10) blinkCursor++;
-            lcd.setCursor(blinkCursor, 1);
-
-            if (lastCount > cursorCount) {
-              batteryEndVolts -= (0.01 * decadeCount);
-              lastCount = cursorCount;
-              setVOut(batteryEndVolts);
-              updateDisplay = 0;
-            } else if (lastCount < cursorCount) {
-              batteryEndVolts += (0.01 * decadeCount);
-              lastCount = cursorCount;
-              setVOut(batteryEndVolts);
-              updateDisplay = 0;
-            }
-            lcd.setCursor(14, 1);
-            lcd.print(batteryEndVolts);
-            lcd.print(" ");
-            if (decadeCount == 100) {
-              blinkCursor = 14;
-            } else if (decadeCount == 10) {
-              blinkCursor = 16;
-            } else if (decadeCount == 1) {
-              blinkCursor = 17;
-            }
-            if (batteryEndVolts >= 10) blinkCursor++;
-            lcd.setCursor(blinkCursor, 1);
-
-            updateDisplay = 0;
-          }
-          checkButtons();
-          if (enterB == 1) {
-            enterB = 0;
-            decadeCount /= 10;
-            updateDisplay = 1;
-            if (decadeCount < 1) break;
-          }
-        }
-        delay(250);
-        lcd.noBlink();
-
+        setDecadeValue(&batteryEndVolts, 0.01, true, 14, 1);
         batteryAdjust = 0;
         updateOutput = 1;
       } else if (batteryAdjust == 2) { // Current
-        batteryCurrent = changeInt10(2, 11, batteryCurrent);
+        float c = float(batteryCurrent);
+        setDecadeValue(&c, 1, false, 14, 2);
+        batteryCurrent = c;
         batteryAdjust = 0;
         updateOutput = 1;
       }
