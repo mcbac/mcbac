@@ -1,6 +1,6 @@
 // Created by: WestleyR
 // Email(s): westleyr@nym.hush.com
-// Last modifyed date: Mar 10, 2020
+// Last modifyed date: Mar 11, 2020
 // Version-1.0.0
 //
 // This file is part of the mcbac software:
@@ -21,6 +21,7 @@
 //#include "LiquidCrystal_I2C.h"
 #include "FaBoLCD_PCF8574.h"
 #include "Adafruit_MCP4725.h"
+#include "Adafruit_ADS1015.h"
 
 #define MCBAC_VERSION "v1.0.0-beta-1"
 #define MCBAC_DATE "March 4, 2020"
@@ -44,11 +45,16 @@ FaBoLCD_PCF8574 lcd;
 Adafruit_MCP4725 dacVout;
 Adafruit_MCP4725 dacIout;
 
+Adafruit_ADS1115 adc;
+
 void setup() {
   pinMode(buttonEnter, INPUT_PULLUP);
   pinMode(buttonBack, INPUT_PULLUP);
   pinMode(buttonUp, INPUT_PULLUP);
   pinMode(buttonDown, INPUT_PULLUP);
+
+  pinMode(8, OUTPUT);
+  digitalWrite(8, HIGH);
 
   pinMode(R_CW, INPUT_PULLUP);
   pinMode(R_CC, INPUT_PULLUP);
@@ -62,6 +68,8 @@ void setup() {
 
   // Make sure the output is zero
   setIOut(0);
+
+  adc.begin();
 
   // Initialize the LCD
   lcd.begin(20, 4);
@@ -99,9 +107,6 @@ void setup() {
   delay(250);
   lcd.clear();
   lcd.setCursor(0, 0);
-
-  setVOut(5);
-
 }
 
 // When 1; update the LCD
@@ -269,6 +274,7 @@ void setDecadeValue(float *value, float inc, bool dec, int updateValue, int cur,
         lastCount = cursorCount;
         if (updateValue == 1) {
           setVOut(*value);
+          //readVolts();
         } else if (updateValue == 2) {
           setIOut(*value);
         }
@@ -278,6 +284,7 @@ void setDecadeValue(float *value, float inc, bool dec, int updateValue, int cur,
         lastCount = cursorCount;
         if (updateValue == 1) {
           setVOut(*value);
+          //readVolts();
         } else if (updateValue == 2) {
           setIOut(*value);
         }
@@ -309,6 +316,10 @@ void setDecadeValue(float *value, float inc, bool dec, int updateValue, int cur,
 
       updateDisplay = 0;
     }
+
+    // Update the volts if in power supply mode
+    if (updateValue == 1 || updateValue == 2) readVolts(blinkCursor, line);
+
     checkButtons();
     if (enterB == 1) {
       enterB = 0;
@@ -319,6 +330,24 @@ void setDecadeValue(float *value, float inc, bool dec, int updateValue, int cur,
   }
   lcd.noCursor();
   delay(250);
+}
+
+unsigned long lastUpdated = millis();
+
+void readVolts(int row, int line) {
+  if (millis() - lastUpdated > 500) {
+    float ret = adc.readADC_SingleEnded(2);
+    Serial.print("RAW: ");
+    Serial.println(ret);
+    ret = ret / 1800;
+    Serial.print("VOLTS: ");
+    Serial.println(ret);
+
+    lcd.setCursor(5, 1);
+    lcd.print(ret);
+    if (row != -1 || line != -1) lcd.setCursor(row, line);
+    lastUpdated = millis();
+  }
 }
 
 void powerSupply() {
@@ -336,7 +365,7 @@ void powerSupply() {
       lcd.print("Power Supply");
       lcd.setCursor(0, 1);
       lcd.print("  V ");
-      lcd.print("00.00");
+      //lcd.print("00.00");
       lcd.setCursor(10, 1);
       lcd.print("SET ");
       lcd.print(batteryEndVolts);
@@ -346,6 +375,7 @@ void powerSupply() {
       lcd.setCursor(10, 2);
       lcd.print("SET ");
       lcd.print(batteryCurrent);
+      readVolts(-1, -1);
       lcd.setCursor(0, 3);
       updateDisplay = 0;
     }
@@ -361,6 +391,7 @@ void powerSupply() {
     } else {
       cursorCount = 1;
     }
+    readVolts(-1, -1);
     checkButtons();
     if (enterB == 1) {
       int lastCursorState = cursorCount;
@@ -706,136 +737,136 @@ int setCVFunc() {
 }
 
 int setCCFunc() {
-/*
-  int batteryAdjust;
-  int updateScroll = 1;
-  int page = 1;
+  /*
+    int batteryAdjust;
+    int updateScroll = 1;
+    int page = 1;
 
-  while (digitalRead(buttonBack) == HIGH) {
-    if (cursorCount == 0) {
-      setLCDPointer(0);
-      updateDisplay = 0;
-      batteryAdjust = 1;
-    } else if (cursorCount == 1) {
-      setLCDPointer(1);
-      updateDisplay = 0;
-      batteryAdjust = 2;
-    } else if (cursorCount == 2) {
-      setLCDPointer(2);
-      updateDisplay = 0;
-      batteryAdjust = 3;
-    } else if (cursorCount == 3) {
-      setLCDPointer(3);
-      updateDisplay = 0;
-      batteryAdjust = 4;
-      if (page == 2) {
-        page = 1;
-        updateScroll = 1;
+    while (digitalRead(buttonBack) == HIGH) {
+      if (cursorCount == 0) {
+        setLCDPointer(0);
+        updateDisplay = 0;
+        batteryAdjust = 1;
+      } else if (cursorCount == 1) {
+        setLCDPointer(1);
+        updateDisplay = 0;
+        batteryAdjust = 2;
+      } else if (cursorCount == 2) {
+        setLCDPointer(2);
+        updateDisplay = 0;
+        batteryAdjust = 3;
+      } else if (cursorCount == 3) {
+        setLCDPointer(3);
+        updateDisplay = 0;
+        batteryAdjust = 4;
+        if (page == 2) {
+          page = 1;
+          updateScroll = 1;
+        }
+      } else if (cursorCount == 4) {
+        if (page == 1) {
+          page = 2;
+          updateScroll = 2;
+        }
+        setLCDPointer(0);
+        updateDisplay = 0;
+        batteryAdjust = 5;
+      } else if (cursorCount == 5) {
+        setLCDPointer(1);
+        updateDisplay = 0;
+        batteryAdjust = 6;
+      } else if (cursorCount == 6) {
+        lcd.setCursor(0, 0);
+        lcd.print("  ");
+        lcd.setCursor(0, 1);
+        lcd.print("G ");
+        lcd.setCursor(0, 2);
+        lcd.print("O ");
+        lcd.setCursor(0, 3);
+        lcd.print("  ");
+        updateDisplay = 0;
+        batteryAdjust = 7;
+      } else {
+        cursorCount = 6;
       }
-    } else if (cursorCount == 4) {
-      if (page == 1) {
-        page = 2;
-        updateScroll = 2;
+
+      if (updateScroll == 1) {
+        lcd.clear();
+        lcd.setCursor(2, 0);
+        lcd.print("Current MA ");
+        lcd.print(batteryCurrent);
+
+        lcd.setCursor(2, 1);
+        lcd.print("Volt limit ");
+        lcd.print(batteryVoltLimit);
+
+        lcd.setCursor(2, 2);
+        lcd.print("Delta V ");
+        lcd.print(batteryEndVolts);
+
+        lcd.setCursor(2, 3);
+        lcd.print("Cutoff MAH ");
+        lcd.print(batteryCutoffMAH);
+        updateScroll = 0;
+      } else if (updateScroll == 2) {
+        // Shift the display down
+        lcd.clear();
+        lcd.setCursor(2, 0);
+        lcd.print("Safety timer ");
+        lcd.print(safetyTimer);
+
+        lcd.setCursor(2, 1);
+        lcd.print("Pulse ");
+        lcd.print(batteryPulseCharge ? "true" : "false");
+        updateScroll = 0;
       }
-      setLCDPointer(0);
-      updateDisplay = 0;
-      batteryAdjust = 5;
-    } else if (cursorCount == 5) {
-      setLCDPointer(1);
-      updateDisplay = 0;
-      batteryAdjust = 6;
-    } else if (cursorCount == 6) {
-      lcd.setCursor(0, 0);
-      lcd.print("  ");
-      lcd.setCursor(0, 1);
-      lcd.print("G ");
-      lcd.setCursor(0, 2);
-      lcd.print("O ");
-      lcd.setCursor(0, 3);
-      lcd.print("  ");
-      updateDisplay = 0;
-      batteryAdjust = 7;
-    } else {
-      cursorCount = 6;
-    }
 
-    if (updateScroll == 1) {
-      lcd.clear();
-      lcd.setCursor(2, 0);
-      lcd.print("Current MA ");
-      lcd.print(batteryCurrent);
-
-      lcd.setCursor(2, 1);
-      lcd.print("Volt limit ");
-      lcd.print(batteryVoltLimit);
-
-      lcd.setCursor(2, 2);
-      lcd.print("Delta V ");
-      lcd.print(batteryEndVolts);
-
-      lcd.setCursor(2, 3);
-      lcd.print("Cutoff MAH ");
-      lcd.print(batteryCutoffMAH);
-      updateScroll = 0;
-    } else if (updateScroll == 2) {
-      // Shift the display down
-      lcd.clear();
-      lcd.setCursor(2, 0);
-      lcd.print("Safety timer ");
-      lcd.print(safetyTimer);
-
-      lcd.setCursor(2, 1);
-      lcd.print("Pulse ");
-      lcd.print(batteryPulseCharge ? "true" : "false");
-      updateScroll = 0;
-    }
-
-    checkButtons();
-    if (backB == 1) break; // return 1 as user pushed the back button
-    if (enterB == 1) {
-      int lastCursorState = cursorCount;
-      enterB = 0;
-      if (batteryAdjust == 1) { // Current MA
-        batteryCurrent = changeInt10(0, 10, batteryCurrent);
-        batteryAdjust = 0;
-      } else if (batteryAdjust == 2) { // Volt limit
-        batteryVoltLimit = changefloatHalf(1, 10, batteryVoltLimit);
-        batteryAdjust = 0;
-      } else if (batteryAdjust == 3) { // Delta V
-        batteryDeltaV = changeFloat05(2, 7, batteryDeltaV);
-        batteryAdjust = 0;
-      } else if (batteryAdjust == 4) { // Cutoff MAH
-        batteryCutoffMAH = changeInt10(3, 10, batteryCutoffMAH);
-        batteryAdjust = 0;
-      } else if (batteryAdjust == 5) { // Safety timer
-        safetyTimer = changeInt10(0, 12, safetyTimer);
-        batteryAdjust = 0;
-      } else if (batteryAdjust == 6) { // Pulse
-        batteryPulseCharge = changeBool(1, 5, batteryPulseCharge);
-        batteryAdjust = 0;
-      } else if (batteryAdjust == 7) { // GO
+      checkButtons();
+      if (backB == 1) break; // return 1 as user pushed the back button
+      if (enterB == 1) {
+        int lastCursorState = cursorCount;
         enterB = 0;
-        updateDisplay = 1;
-        cursorCount = 0;
-        // User said to start the function
-        return 0;
+        if (batteryAdjust == 1) { // Current MA
+          batteryCurrent = changeInt10(0, 10, batteryCurrent);
+          batteryAdjust = 0;
+        } else if (batteryAdjust == 2) { // Volt limit
+          batteryVoltLimit = changefloatHalf(1, 10, batteryVoltLimit);
+          batteryAdjust = 0;
+        } else if (batteryAdjust == 3) { // Delta V
+          batteryDeltaV = changeFloat05(2, 7, batteryDeltaV);
+          batteryAdjust = 0;
+        } else if (batteryAdjust == 4) { // Cutoff MAH
+          batteryCutoffMAH = changeInt10(3, 10, batteryCutoffMAH);
+          batteryAdjust = 0;
+        } else if (batteryAdjust == 5) { // Safety timer
+          safetyTimer = changeInt10(0, 12, safetyTimer);
+          batteryAdjust = 0;
+        } else if (batteryAdjust == 6) { // Pulse
+          batteryPulseCharge = changeBool(1, 5, batteryPulseCharge);
+          batteryAdjust = 0;
+        } else if (batteryAdjust == 7) { // GO
+          enterB = 0;
+          updateDisplay = 1;
+          cursorCount = 0;
+          // User said to start the function
+          return 0;
+        }
+        cursorCount = lastCursorState;
       }
-      cursorCount = lastCursorState;
     }
-  }
-  updateDisplay = 1;
+    updateDisplay = 1;
 
-*/
+  */
   return 1;
 }
 
 // The Constent current discharge setup
 int setCCDFunc() {
   /*int batteryAdjust;
-  int updateScroll = 1;
-  int page = 1;
+    int updateScroll = 1;
+    int page = 1;
 
-  while (digitalRead(buttonBack) == HIGH) {
+    while (digitalRead(buttonBack) == HIGH) {
     if (cursorCount == 0) {
       setLCDPointer(0);
       updateDisplay = 0;
@@ -913,9 +944,9 @@ int setCCDFunc() {
       }
       cursorCount = lastCursorState;
     }
-  }
-  updateDisplay = 1;
-*/
+    }
+    updateDisplay = 1;
+  */
   return 1;
 }
 
