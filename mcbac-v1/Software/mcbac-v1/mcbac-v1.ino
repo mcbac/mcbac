@@ -197,11 +197,15 @@ void setVOut(float volts) {
   dacVout.setVoltage(v, false);
 }
 
+const static int CURRENT_OFFSET = 629;
+const static float CURRENT_CAL = 0.629;
+
 // volts can be 0.00-15.00
 void setIOut(int ma) {
   // 4096 is the max value
 
-  int i = ma * 2;
+  // TODO: FIXME:
+  int i = (ma + CURRENT_OFFSET) / CURRENT_CAL;
   dacIout.setVoltage(i, false);
 }
 
@@ -336,16 +340,30 @@ unsigned long lastUpdated = millis();
 
 void readVolts(int row, int line) {
   if (millis() - lastUpdated > 500) {
-    float ret = adc.readADC_SingleEnded(2);
-    Serial.print("RAW: ");
-    Serial.println(ret);
-    ret = ret / 1800;
-    Serial.print("VOLTS: ");
-    Serial.println(ret);
+    float ret;
 
-    lcd.setCursor(5, 1);
+    // read the volts
+    ret = adc.readADC_SingleEnded(2);
+    ret = ret / 1800;
+
+    lcd.setCursor(4, 1);
     lcd.print(ret);
+    lcd.print(" ");
     if (row != -1 || line != -1) lcd.setCursor(row, line);
+
+    // Now read the current
+    ret = adc.readADC_SingleEnded(1);
+
+    // Remove the diff opamp offset, then the calabrate value
+    ret = (ret - 3561) / 25.54;
+    lcd.setCursor(4, 2);
+    if (ret < 0) {
+      lcd.print("0   ");
+    } else {
+      lcd.print((int)ret);
+      lcd.print("   ");
+    }
+    if (row != -1 && line != -1) lcd.setCursor(row, line);
     lastUpdated = millis();
   }
 }
@@ -371,11 +389,11 @@ void powerSupply() {
       lcd.print(batteryEndVolts);
       lcd.setCursor(0, 2);
       lcd.print("  I ");
-      lcd.print("0000");
+      //lcd.print("0000");
       lcd.setCursor(10, 2);
       lcd.print("SET ");
       lcd.print(batteryCurrent);
-      readVolts(-1, -1);
+      //readVolts(-1, -1);
       lcd.setCursor(0, 3);
       updateDisplay = 0;
     }
