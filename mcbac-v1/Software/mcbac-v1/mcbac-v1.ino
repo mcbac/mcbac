@@ -53,6 +53,10 @@ void setup() {
   pinMode(buttonUp, INPUT_PULLUP);
   pinMode(buttonDown, INPUT_PULLUP);
 
+  // The input test
+  pinMode(6, OUTPUT);
+  digitalWrite(6, LOW);
+
   pinMode(8, OUTPUT);
   digitalWrite(8, HIGH);
 
@@ -197,15 +201,17 @@ void setVOut(float volts) {
   dacVout.setVoltage(v, false);
 }
 
-const static int CURRENT_OFFSET = 629;
-const static float CURRENT_CAL = 0.629;
+const static int CURRENT_OFFSET = 0;
+const static float CURRENT_CAL = 0.65;
 
 // volts can be 0.00-15.00
 void setIOut(int ma) {
   // 4096 is the max value
 
   // TODO: FIXME:
-  int i = (ma + CURRENT_OFFSET) / CURRENT_CAL;
+  //int i = (ma + CURRENT_OFFSET) / CURRENT_CAL;
+  int i = 525;
+  i += ma* 4.45;
   dacIout.setVoltage(i, false);
 }
 
