@@ -1,6 +1,6 @@
 // Created by: WestleyR
 // Email(s): westleyr@nym.hush.com
-// Last modifyed date: Mar 11, 2020
+// Last modifyed date: Mar 12, 2020
 // Version-1.0.0
 //
 // This file is part of the mcbac software:
@@ -52,10 +52,6 @@ void setup() {
   pinMode(buttonBack, INPUT_PULLUP);
   pinMode(buttonUp, INPUT_PULLUP);
   pinMode(buttonDown, INPUT_PULLUP);
-
-  // The input test
-  pinMode(6, OUTPUT);
-  digitalWrite(6, LOW);
 
   pinMode(8, OUTPUT);
   digitalWrite(8, HIGH);
@@ -204,14 +200,14 @@ void setVOut(float volts) {
 const static int CURRENT_OFFSET = 0;
 const static float CURRENT_CAL = 0.65;
 
-// volts can be 0.00-15.00
+// Current can be from 0-2000;
 void setIOut(int ma) {
   // 4096 is the max value
 
   // TODO: FIXME:
   //int i = (ma + CURRENT_OFFSET) / CURRENT_CAL;
-  int i = 525;
-  i += ma* 4.45;
+  int i = 520;
+  i += ma * 4.25;
   dacIout.setVoltage(i, false);
 }
 
@@ -274,6 +270,7 @@ void setDecadeValue(float *value, float inc, bool dec, int updateValue, int cur,
   int lastCount = cursorCount;
   int decadeCount = 100;
   int blinkCursor;
+  updateDisplay = 1;
   lcd.setCursor(cur, line);
   lcd.cursor();
   // Wait for the user to set the end voltage
@@ -284,7 +281,6 @@ void setDecadeValue(float *value, float inc, bool dec, int updateValue, int cur,
         lastCount = cursorCount;
         if (updateValue == 1) {
           setVOut(*value);
-          //readVolts();
         } else if (updateValue == 2) {
           setIOut(*value);
         }
@@ -294,7 +290,6 @@ void setDecadeValue(float *value, float inc, bool dec, int updateValue, int cur,
         lastCount = cursorCount;
         if (updateValue == 1) {
           setVOut(*value);
-          //readVolts();
         } else if (updateValue == 2) {
           setIOut(*value);
         }
@@ -306,6 +301,7 @@ void setDecadeValue(float *value, float inc, bool dec, int updateValue, int cur,
         lcd.print(*value);
       } else {
         lcd.print((int)*value);
+        if (*value == 0) lcd.print("  ");
       }
       lcd.print(" ");
       if (decadeCount == 100) {
@@ -342,20 +338,22 @@ void setDecadeValue(float *value, float inc, bool dec, int updateValue, int cur,
   delay(250);
 }
 
+float batteryMWH;
 unsigned long lastUpdated = millis();
 
 void readVolts(int row, int line) {
+  // Only update every 0.5s
   if (millis() - lastUpdated > 500) {
     float ret;
 
     // read the volts
     ret = adc.readADC_SingleEnded(2);
     ret = ret / 1800;
+    float v = ret;
 
     lcd.setCursor(4, 1);
     lcd.print(ret);
     lcd.print(" ");
-    if (row != -1 || line != -1) lcd.setCursor(row, line);
 
     // Now read the current
     ret = adc.readADC_SingleEnded(1);
@@ -369,10 +367,36 @@ void readVolts(int row, int line) {
       lcd.print((int)ret);
       lcd.print("   ");
     }
+
+    // Print the Watts
+    lcd.setCursor(4, 3);
+    float w = (ret / 1000) * v;
+    if (w < 0) {
+      lcd.print("0.00");
+      w = 0;
+    } else {
+      lcd.print(w);
+    }
+    lcd.print(" ");
+
+    // Print the mWH
+    unsigned long t = millis() - lastUpdated;
+    float mwh = (t * w) / 36;
+    Serial.println(t);
+    Serial.println(mwh);
+    batteryMWH += mwh;
+    Serial.println(batteryMWH);
+
+    lcd.setCursor(14, 3);
+    lcd.print((int)(batteryMWH / 100));
+
     if (row != -1 && line != -1) lcd.setCursor(row, line);
     lastUpdated = millis();
   }
 }
+
+int batteryPower; // The Watts
+int batteryCap; // The mAH
 
 void powerSupply() {
   int batteryAdjust;
@@ -382,6 +406,7 @@ void powerSupply() {
   while (digitalRead(buttonBack) == HIGH) {
     if (updateOutput == 1) {
       setVOut(batteryEndVolts);
+      setIOut(batteryCurrent);
     }
     if (updateDisplay == 1) {
       lcd.clear();
@@ -389,18 +414,18 @@ void powerSupply() {
       lcd.print("Power Supply");
       lcd.setCursor(0, 1);
       lcd.print("  V ");
-      //lcd.print("00.00");
       lcd.setCursor(10, 1);
       lcd.print("SET ");
       lcd.print(batteryEndVolts);
       lcd.setCursor(0, 2);
       lcd.print("  I ");
-      //lcd.print("0000");
       lcd.setCursor(10, 2);
       lcd.print("SET ");
       lcd.print(batteryCurrent);
-      //readVolts(-1, -1);
       lcd.setCursor(0, 3);
+      lcd.print("  W ");
+      lcd.setCursor(10, 3);
+      lcd.print("mWH ");
       updateDisplay = 0;
     }
 
@@ -440,9 +465,9 @@ void powerSupply() {
 
   lcd.print("End Power Supply");
   lcd.setCursor(0, 1);
-  lcd.print("mAH: 00000");
+  lcd.print("Total mWH: ");
   lcd.setCursor(0, 2);
-  lcd.print("Wh: 00000");
+  lcd.print(batteryMWH);
 
   delay(200);
   while (digitalRead(buttonBack) == HIGH) {
@@ -596,13 +621,7 @@ void chargeLiBattery() {
     }
   } else if (batteryType == 3) {
     // Lead acid
-  } else if (batteryType == 4) {
-    // Power supply
-    if (setCVFunc() != 0) {
-      cursorCount = 0;
-      updateDisplay = 1;
-      return;
-    }
+  } else if (batteryType == 4) { // Power supply
     powerSupply();
 
   } else if (batteryType == 5) {
