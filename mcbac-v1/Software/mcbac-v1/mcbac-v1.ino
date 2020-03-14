@@ -1,6 +1,6 @@
 // Created by: WestleyR
 // Email(s): westleyr@nym.hush.com
-// Last modifyed date: Mar 12, 2020
+// Last modifyed date: Mar 13, 2020
 // Version-1.0.0
 //
 // This file is part of the mcbac software:
@@ -17,14 +17,13 @@
 //
 
 #include <Wire.h>
-//#include <stdarg.h>
-//#include "LiquidCrystal_I2C.h"
+
 #include "FaBoLCD_PCF8574.h"
 #include "Adafruit_MCP4725.h"
 #include "Adafruit_ADS1015.h"
 
 #define MCBAC_VERSION "v1.0.0-beta-1"
-#define MCBAC_DATE "March 4, 2020"
+#define MCBAC_DATE "March 13, 2020"
 
 #define buttonEnter A0
 #define buttonBack A1
@@ -35,16 +34,10 @@
 #define R_CC 3
 
 // 20x4 LCD with I2C adaptor
-//LiquidCrystal_I2C lcd(0x27, 20, 4);
-
-//#define PCF8574_SLAVE_ADDRESS 0x27
-
-
 FaBoLCD_PCF8574 lcd;
 
 Adafruit_MCP4725 dacVout;
 Adafruit_MCP4725 dacIout;
-
 Adafruit_ADS1115 adc;
 
 void setup() {
@@ -189,16 +182,24 @@ int checkButtons() {
   return 0;
 }
 
+int outputVOffset = 0;
+
 // volts can be 0.00-15.00
 void setVOut(float volts) {
   // 4096 is the max value
 
   int v = volts * 273;
+  v += outputVOffset;
+  if (v < 0) v = 0;
+  if (v > 4096) v = 4096;
   dacVout.setVoltage(v, false);
 }
 
+// TODO: Fix this to real values
 const static int CURRENT_OFFSET = 0;
 const static float CURRENT_CAL = 0.65;
+
+int outputIOffset = 0;
 
 // Current can be from 0-2000;
 void setIOut(int ma) {
@@ -208,6 +209,7 @@ void setIOut(int ma) {
   //int i = (ma + CURRENT_OFFSET) / CURRENT_CAL;
   int i = 520;
   i += ma * 4.25;
+  i += outputIOffset;
   dacIout.setVoltage(i, false);
 }
 
@@ -282,7 +284,8 @@ void setDecadeValue(float *value, float inc, bool dec, int updateValue, int cur,
         if (updateValue == 1) {
           setVOut(*value);
         } else if (updateValue == 2) {
-          setIOut(*value);
+          //setIOut((int)*value);
+          batteryCurrent = (int) * value;
         }
         updateDisplay = 0;
       } else if (lastCount < cursorCount) {
@@ -291,7 +294,8 @@ void setDecadeValue(float *value, float inc, bool dec, int updateValue, int cur,
         if (updateValue == 1) {
           setVOut(*value);
         } else if (updateValue == 2) {
-          setIOut(*value);
+          //setIOut((int)*value);
+          batteryCurrent = (int) * value;
         }
         updateDisplay = 0;
       }
@@ -341,36 +345,102 @@ void setDecadeValue(float *value, float inc, bool dec, int updateValue, int cur,
 float batteryMWH;
 unsigned long lastUpdated = millis();
 
+#define BETWEEN(value, min, max) (value < max && value > min)
+#define CV true
+#define CC false
+#define MAX_OFFSET 256
+
+bool vcal = false;
+
+void fixOutputVolts(bool supplyMode, float real, float set) {
+  // Only fix the output if in CV mode
+  if (supplyMode == CV) {
+    if (real < set) {
+      outputVOffset += 1;
+    } else if (real > set) {
+      outputVOffset -= 1;
+    }
+    if (outputVOffset > MAX_OFFSET) outputVOffset = MAX_OFFSET;
+    if (outputVOffset < -MAX_OFFSET) outputVOffset = -MAX_OFFSET;
+    setVOut(batteryEndVolts);
+  }
+}
+
+void fixOutputCurrent(bool supplyMode, float real, float set) {
+  // Only fix the output if in CC mode
+  if (supplyMode == CC) {
+    if (real < set) {
+      outputIOffset += 1;
+    } else if (real > set) {
+      outputIOffset -= 1;
+    }
+    if (outputIOffset > MAX_OFFSET) outputIOffset = MAX_OFFSET;
+    if (outputIOffset < -MAX_OFFSET) outputIOffset = -MAX_OFFSET;
+    setIOut(batteryCurrent);
+  }
+}
+
+float i;
+float v;
+bool supplyMode;
+
 void readVolts(int row, int line) {
+  //  float ret;
+  //  float v;
+  //  bool supplyMode;
+
+  // Read the volts
+  v = adc.readADC_SingleEnded(2);
+  v = v / 1800;
+
+  // Now read the current
+  i = adc.readADC_SingleEnded(1);
+  // Remove the diff opamp offset, then the calabrate value
+  //i = (i - 3561) / 25.54;
+  i = (i - 3561) / 25.2;
+  if (i < 0) {
+    i = 0;
+  }
+
   // Only update every 0.5s
   if (millis() - lastUpdated > 500) {
-    float ret;
-
-    // read the volts
-    ret = adc.readADC_SingleEnded(2);
-    ret = ret / 1800;
-    float v = ret;
-
     lcd.setCursor(4, 1);
-    lcd.print(ret);
+    lcd.print(v);
     lcd.print(" ");
 
-    // Now read the current
-    ret = adc.readADC_SingleEnded(1);
-
-    // Remove the diff opamp offset, then the calabrate value
-    ret = (ret - 3561) / 25.54;
     lcd.setCursor(4, 2);
-    if (ret < 0) {
-      lcd.print("0   ");
-    } else {
-      lcd.print((int)ret);
-      lcd.print("   ");
-    }
+    lcd.print((int)i);
+    lcd.print("   ");
+
+
+    //    lcd.setCursor(18, 0);
+    //    //if (BETWEEN((batteryEndVolts - v), -0.02, 0.02)) {
+    //    if (((batteryEndVolts - v) <= 0.02) && ((batteryEndVolts - v) >= -0.02) && (i == 0)) {
+    //      vcal = true;
+    //    } else {
+    //      if (i != 0) vcal = false;
+    //    }
+    //    Serial.println(vcal);
+    //
+    //    Serial.print("realV: ");
+    //    Serial.println(v);
+    //    Serial.print("endV:  ");
+    //    Serial.println(batteryEndVolts);
+    //    Serial.print("diffV: ");
+    //    Serial.println(batteryEndVolts - v);
+    //
+    //    //if ((v < batteryEndVolts) { // && (BETWEEN((batteryCurrent - i), -25, 25))) {
+    //    //if (((batteryEndVolts - v) >= 0.02 ) || (BETWEEN((batteryCurrent - i), -25, 25))) {
+    //    //if ((vcal == true) && ((batteryEndVolts - v) <= 0.02)) {
+    //    if ((vcal == true) && ((batteryEndVolts - v) > 0.02) && (i > 0)) {
+    //      lcd.print("CC");
+    //    } else {
+    //      lcd.print("CV");
+    //    }
 
     // Print the Watts
     lcd.setCursor(4, 3);
-    float w = (ret / 1000) * v;
+    float w = (i / 1000) * v;
     if (w < 0) {
       lcd.print("0.00");
       w = 0;
@@ -382,21 +452,27 @@ void readVolts(int row, int line) {
     // Print the mWH
     unsigned long t = millis() - lastUpdated;
     float mwh = (t * w) / 36;
-    Serial.println(t);
-    Serial.println(mwh);
     batteryMWH += mwh;
-    Serial.println(batteryMWH);
 
     lcd.setCursor(14, 3);
     lcd.print((int)(batteryMWH / 100));
-
-    if (row != -1 && line != -1) lcd.setCursor(row, line);
+  
     lastUpdated = millis();
   }
-}
 
-int batteryPower; // The Watts
-int batteryCap; // The mAH
+  // Fix the output error
+  if (i == 0) fixOutputVolts(CV, v, batteryEndVolts);
+
+  lcd.setCursor(18, 0);
+  if (((batteryEndVolts - v) >= 0.02) || ((batteryEndVolts - v) <= -0.02)) {
+    lcd.print("CC");
+    fixOutputCurrent(CC, i, batteryCurrent);
+  } else {
+    lcd.print("CV");
+  }
+
+  if (row != -1 && line != -1) lcd.setCursor(row, line);
+}
 
 void powerSupply() {
   int batteryAdjust;
