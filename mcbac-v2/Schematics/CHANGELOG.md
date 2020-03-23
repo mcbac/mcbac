@@ -1,11 +1,20 @@
 #### This is the changelog for the MCBAC hardware. The software changelog is in the Software directory.
 
-## MCBAC-v2.0
+## MCBAC-V2.1
 
-Sep 1, 2020 (estimated time)
+April 20, 2020 (eta)
 
-Support for charging and discharging most batteries, (only can charge 1s
-lithium battery).
+#### Changes
+
+ - Improvement to the circuit diagram
+ - Changed the `0201` caps to `0603`
+ - Added a `10nF` decoupling cap for `U1` (atmega328)
+
+## MCBAC-V2.0 (pre-release)
+
+March 17, 2020
+
+Basic prototype circuit.
 
 <br>
 
