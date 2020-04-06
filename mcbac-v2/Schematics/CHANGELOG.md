@@ -3,10 +3,10 @@
 **This is the changelog for the MCBAC hardware. The software changelog
 is in the Software directory.**
 
-_**NOTE:**
- 1. Versions with "alpha", "a", "beta", "b", or "rc" are pre-releases,
+_**NOTE:**_
+ _1. Versions with "alpha", "a", "beta", "b", or "rc" are pre-releases,_
 and subject to change.
- 2. This changelog may not include all changes, as this is hand written._
+ _2. This changelog may not include all changes, as this is hand written._
 
 ## MCBAC-V2.1-a1 April 6, 2020
 
