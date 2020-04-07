@@ -5,6 +5,14 @@ and Schematic.
 
 Comming by this summer/fall, 2020.
 
+## Roadmap
+
+_The roadmap is subject to change without notice._
+
+MCBAC V2.X will be available in low production quantities (maybe 25 units). If
+that is successful, V3 will include cell balancing, PC/USB controll, and higher
+output capability.
+
 ## License
 
 All files owned by the MCBAC designer(s) are licensed under the terms of
