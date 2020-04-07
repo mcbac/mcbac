@@ -11,7 +11,7 @@ _The roadmap is subject to change without notice._
 
 MCBAC V2.X will be available in low production quantities (maybe 25 units). If
 that is successful, V3 will include cell balancing, PC/USB controll, and higher
-output capability.
+output capability, and will be avalibale in higher quantities (50-100 units).
 
 ## License
 
