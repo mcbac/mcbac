@@ -1,12 +1,9 @@
 // Created by: WestleyR
-// Email(s): westleyr@nym.hush.com
-// Last modifyed date: Mar 13, 2020
-// Version-1.0.0
+// Email: westleyr@nym.hush.com
+// Url: https://github.com/WestleyR/mcbac
+// Last modified date: 2020-04-07
 //
-// This file is part of the mcbac software:
-// https://github.com/WestleyR/mcbac
-//
-// Which that software and this file is licensed under:
+// This file is licensed under the terms of
 //
 // The Clear BSD License
 //
@@ -22,13 +19,15 @@
 #include "Adafruit_MCP4725.h"
 #include "Adafruit_ADS1015.h"
 
-#define MCBAC_VERSION "v1.0.0-beta-1"
-#define MCBAC_DATE "March 13, 2020"
+#define MCBAC_VERSION "v1.0.0-beta-2"
+#define MCBAC_DATE "Apr 7, 2020"
 
-#define buttonEnter A0
-#define buttonBack A1
-#define buttonUp A2
-#define buttonDown A3
+#define buttonEnter 4
+#define buttonBack 5
+#define buttonUp 6
+#define buttonDown 7
+
+#define buzzer 8
 
 #define R_CW 2
 #define R_CC 3
@@ -45,6 +44,9 @@ void setup() {
   pinMode(buttonBack, INPUT_PULLUP);
   pinMode(buttonUp, INPUT_PULLUP);
   pinMode(buttonDown, INPUT_PULLUP);
+
+  pinMode(buzzer, OUTPUT);
+  digitalWrite(buzzer, LOW);
 
   pinMode(8, OUTPUT);
   digitalWrite(8, HIGH);

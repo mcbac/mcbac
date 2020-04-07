@@ -8,11 +8,9 @@ _**NOTE:**_
  and subject to change.
  2. This changelog may not include all changes, as this is hand written.
 
-## MCBAC-v1.0.0
+## v1.0.0.b1 - Apr 7, 2020
 
-Sep 1, 2020 (estimated time)
-
-Init release, basic functions.
+Init release.
 
 <br>
 
