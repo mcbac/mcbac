@@ -8,7 +8,7 @@ _**NOTE:**_
  and subject to change.
  2. This changelog may not include all changes, as this is hand written.
 
-## MCBAC-V2.1-a1 April 6, 2020
+## MCBAC-V2.1-a1 - April 6, 2020
 
 ### ADDED
  - Added a `100nF` decoupling cap for `U1` (atmega328)
@@ -31,7 +31,7 @@ _**NOTE:**_
  - Removed the 40X20mm blower fan (maybe will use a squirrel fan)
  - Removed the unnecessary reed relay
 
-## MCBAC-V2.0 March 17, 2020
+## MCBAC-V2.0 - March 17, 2020
 
 Basic prototype circuit.
 
