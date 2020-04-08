@@ -1,7 +1,7 @@
 // Created by: WestleyR
 // Email: westleyr@nym.hush.com
 // Url: https://github.com/WestleyR/mcbac
-// Last modified date: 2020-04-07
+// Last modified date: 2020-04-08
 //
 // This file is licensed under the terms of
 //
@@ -28,6 +28,9 @@
 #define buttonDown 7
 
 #define buzzer 8
+#define battery_relay 9
+#define charge_discharge_relay A1
+#define CC_CV A3
 
 #define R_CW 2
 #define R_CC 3
@@ -46,7 +49,13 @@ void setup() {
   pinMode(buttonDown, INPUT_PULLUP);
 
   pinMode(buzzer, OUTPUT);
+  pinMode(battery_relay, OUTPUT);
+  pinMode(charge_discharge_relay, OUTPUT);
+  pinMode(CC_CV, INPUT);
+
   digitalWrite(buzzer, LOW);
+  digitalWrite(battery_relay, LOW);
+  digitalWrite(charge_discharge_relay, LOW);
 
   pinMode(8, OUTPUT);
   digitalWrite(8, HIGH);
@@ -392,7 +401,7 @@ void readVolts(int row, int line) {
   //  bool supplyMode;
 
   // Read the volts
-  v = adc.readADC_SingleEnded(2);
+  v = adc.readADC_SingleEnded(0);
   v = v / 1800;
 
   // Now read the current
@@ -481,6 +490,9 @@ void powerSupply() {
   int updateOutput = 1;
   cursorCount = 0;
 
+  digitalWrite(battery_relay, HIGH);
+  digitalWrite(charge_discharge_relay, LOW);
+
   while (digitalRead(buttonBack) == HIGH) {
     if (updateOutput == 1) {
       setVOut(batteryEndVolts);
@@ -537,6 +549,8 @@ void powerSupply() {
       cursorCount = lastCursorState;
     }
   }
+
+  digitalWrite(battery_relay, LOW);
 
   lcd.clear();
   lcd.setCursor(0, 0);
