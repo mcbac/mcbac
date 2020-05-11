@@ -1,7 +1,7 @@
 // Created by: WestleyR
 // Email: westleyr@nym.hush.com
 // Url: https://github.com/WestleyR/mcbac
-// Last modified date: 2020-04-08
+// Last modified date: 2020-05-11
 //
 // This file is licensed under the terms of
 //
@@ -19,8 +19,8 @@
 #include "Adafruit_MCP4725.h"
 #include "Adafruit_ADS1015.h"
 
-#define MCBAC_VERSION "v1.0.0-beta-2"
-#define MCBAC_DATE "Apr 7, 2020"
+#define MCBAC_VERSION "v1.0.0-beta-4"
+#define MCBAC_DATE "May 11, 2020"
 
 #define buttonEnter 4
 #define buttonBack 5
@@ -145,7 +145,8 @@ void cursorCW() {
   // Read pins D, and only keep pins 2 and 3
   byte reading = PIND & B00001100;
   if (reading == B00001100 && lastCW == 1) {
-    cursorCount++;
+    // TODO: changed to -- untill fixed wires
+    cursorCount--;
     updateDisplay = 1;
     lastCW = 0;
     lastCC = 0;
@@ -160,7 +161,8 @@ void cursorCC() {
   // Read pins D, and only keep pins 2 and 3
   byte reading = PIND & B00001100;
   if (reading == B00001100 && lastCC == 1) {
-    cursorCount--;
+    // TODO: changed to ++ untill fixed wires
+    cursorCount++;
     updateDisplay = 1;
     if (cursorCount <= 0) cursorCount = 0;
     lastCC = 0;
@@ -359,7 +361,7 @@ unsigned long lastUpdated = millis();
 #define BETWEEN(value, min, max) (value < max && value > min)
 #define CV true
 #define CC false
-#define MAX_OFFSET 256
+#define MAX_OFFSET 50
 
 bool vcal = false;
 
@@ -374,6 +376,8 @@ void fixOutputVolts(bool supplyMode, float real, float set) {
     if (outputVOffset > MAX_OFFSET) outputVOffset = MAX_OFFSET;
     if (outputVOffset < -MAX_OFFSET) outputVOffset = -MAX_OFFSET;
     setVOut(batteryEndVolts);
+    Serial.print("outputoffset: ");
+    Serial.println(outputVOffset);
   }
 }
 
@@ -395,59 +399,33 @@ float i;
 float v;
 bool supplyMode;
 
+// readVolts will read the volts, update the display, and do small adjustments to the output
+// if needed. Used in Power Supply mode.
 void readVolts(int row, int line) {
-  //  float ret;
-  //  float v;
-  //  bool supplyMode;
-
   // Read the volts
   v = adc.readADC_SingleEnded(0);
-  v = v / 1800;
+  // Calabrate the voltage
+  v = v / 1750;
 
   // Now read the current
   i = adc.readADC_SingleEnded(1);
   // Remove the diff opamp offset, then the calabrate value
-  //i = (i - 3561) / 25.54;
-  i = (i - 3561) / 25.2;
+  i = (i - 3561) / 25.4;
   if (i < 0) {
     i = 0;
   }
 
   // Only update every 0.5s
   if (millis() - lastUpdated > 500) {
+    // Print the volts
     lcd.setCursor(4, 1);
     lcd.print(v);
     lcd.print(" ");
 
+    // Print the current
     lcd.setCursor(4, 2);
     lcd.print((int)i);
     lcd.print("   ");
-
-
-    //    lcd.setCursor(18, 0);
-    //    //if (BETWEEN((batteryEndVolts - v), -0.02, 0.02)) {
-    //    if (((batteryEndVolts - v) <= 0.02) && ((batteryEndVolts - v) >= -0.02) && (i == 0)) {
-    //      vcal = true;
-    //    } else {
-    //      if (i != 0) vcal = false;
-    //    }
-    //    Serial.println(vcal);
-    //
-    //    Serial.print("realV: ");
-    //    Serial.println(v);
-    //    Serial.print("endV:  ");
-    //    Serial.println(batteryEndVolts);
-    //    Serial.print("diffV: ");
-    //    Serial.println(batteryEndVolts - v);
-    //
-    //    //if ((v < batteryEndVolts) { // && (BETWEEN((batteryCurrent - i), -25, 25))) {
-    //    //if (((batteryEndVolts - v) >= 0.02 ) || (BETWEEN((batteryCurrent - i), -25, 25))) {
-    //    //if ((vcal == true) && ((batteryEndVolts - v) <= 0.02)) {
-    //    if ((vcal == true) && ((batteryEndVolts - v) > 0.02) && (i > 0)) {
-    //      lcd.print("CC");
-    //    } else {
-    //      lcd.print("CV");
-    //    }
 
     // Print the Watts
     lcd.setCursor(4, 3);
@@ -471,7 +449,7 @@ void readVolts(int row, int line) {
     lastUpdated = millis();
   }
 
-  // Fix the output error
+  // Fix the output error only if current is 0
   if (i == 0) fixOutputVolts(CV, v, batteryEndVolts);
 
   lcd.setCursor(18, 0);

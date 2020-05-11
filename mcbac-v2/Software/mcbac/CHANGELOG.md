@@ -8,7 +8,7 @@ _**NOTE:**_
  and subject to change.
  2. This changelog may not include all changes, as this is hand written.
 
-## v1.0.0.b1 - Apr 7, 2020
+## v1.0.0.b4 - May 11, 2020
 
 Init release.
 
