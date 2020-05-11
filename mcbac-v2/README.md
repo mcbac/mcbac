@@ -12,8 +12,8 @@ _The specification is subject to change without notice._
  - Input volts: 7-24v (28v max) (maximum output volts will be 2 volts below the input)
  - Input current: 2.5A max
  - Output volts: 0-15v
- - Output source current: 2A
- - Output sink current: 2A (or 30w whichever come first)
+ - Output source current: 0-2A
+ - Output sink current: 0-2A
  - Output type: linear with buck pre-regulator
  - External temperature sensor (NTC)
 
@@ -25,7 +25,7 @@ _The specification is subject to change without notice._
 
 ### Physical
  - Case: na (dimension not yet available)
- - Imbedded fan
+ - Internal fan
  - Input: DC power jack (type not yet available)
  - Output: 2X banana jacks
  - Temperature sensor conector: 2 pin JST
