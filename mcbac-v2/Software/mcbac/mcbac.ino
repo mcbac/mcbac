@@ -365,6 +365,7 @@ unsigned long lastUpdated = millis();
 
 bool vcal = false;
 
+// FixOutputVolts will slightly adjust the real volts to match the set volts
 void fixOutputVolts(bool supplyMode, float real, float set) {
   // Only fix the output if in CV mode
   if (supplyMode == CV) {
