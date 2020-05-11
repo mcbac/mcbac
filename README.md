@@ -3,7 +3,19 @@
 **M**ulti **C**hemistry **B**attery **A**nalyzer and **C**harger - The Software
 and Schematic.
 
+MCBAC is a open source (schematic and software), Arduino controled (atmega238),
+battery charger and analyzer designed for common battery types.
+
 Comming by late 2020 to mid 2021.
+
+## Purpose
+
+The main purpose of the MCBAC is a affordable, battery charger, discharger, and
+analyzer. Able to test batteries of all shapes and sizes.
+
+## Specification
+
+Please see the [mcbac-v2/README.md](./mcbac-v2/README.md) for details.
 
 ## Roadmap
 
