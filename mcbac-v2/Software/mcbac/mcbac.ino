@@ -1,7 +1,7 @@
 // Created by: WestleyR
 // Email: westleyr@nym.hush.com
 // Url: https://github.com/WestleyR/mcbac
-// Last modified date: 2020-05-11
+// Last modified date: 2020-05-19
 //
 // This file is licensed under the terms of
 //
@@ -150,6 +150,7 @@ void cursorCW() {
     updateDisplay = 1;
     lastCW = 0;
     lastCC = 0;
+    if (cursorCount <= 0) cursorCount = 0;
   } else if (reading == B00001000) {
     lastCC = 1;
   }
@@ -164,7 +165,6 @@ void cursorCC() {
     // TODO: changed to ++ untill fixed wires
     cursorCount++;
     updateDisplay = 1;
-    if (cursorCount <= 0) cursorCount = 0;
     lastCC = 0;
     lastCW = 0;
   } else if (reading == B00000100) {
@@ -377,8 +377,6 @@ void fixOutputVolts(bool supplyMode, float real, float set) {
     if (outputVOffset > MAX_OFFSET) outputVOffset = MAX_OFFSET;
     if (outputVOffset < -MAX_OFFSET) outputVOffset = -MAX_OFFSET;
     setVOut(batteryEndVolts);
-    Serial.print("outputoffset: ");
-    Serial.println(outputVOffset);
   }
 }
 
@@ -1064,6 +1062,8 @@ int setCCDFunc() {
   return 1;
 }
 
+// selectFunction will print the list and the user can chose between one of
+// the options. num is the number of list items. Returns the function in int.
 int selectFunction(int num, const char* list, ...) {
   int batteryRun = -1;
 
@@ -1083,6 +1083,7 @@ int selectFunction(int num, const char* list, ...) {
   }
   va_end(nameValues);
 
+  // While the back button is not pressed.
   while (digitalRead(backB) == HIGH) {
     if (cursorCount == 0) {
       setLCDPointer(0);
@@ -1338,7 +1339,6 @@ void mainMenu() {
       lcd.print("batteries");
       batteryType = 1;
       updateDisplay = 0;
-      Serial.println("Lithium battery");
     } else if (cursorCount == 1) {
       lcd.clear();
       lcd.setCursor(2, 0);
@@ -1348,7 +1348,6 @@ void mainMenu() {
       lcd.setCursor(5, 3);
       lcd.print("batteries");
       batteryType = 2;
-      Serial.println("Nickel battery");
       updateDisplay = 0;
     } else if (cursorCount == 2) {
       lcd.clear();
@@ -1359,7 +1358,6 @@ void mainMenu() {
       lcd.setCursor(5, 3);
       lcd.print("batteries");
       batteryType = 3;
-      Serial.println("Lead acid battery");
       updateDisplay = 0;
     } else if (cursorCount == 3) {
       lcd.clear();
@@ -1370,7 +1368,6 @@ void mainMenu() {
       lcd.setCursor(7, 3);
       lcd.print("Supply");
       batteryType = 4;
-      Serial.println("Power Supply");
       updateDisplay = 0;
     } else if (cursorCount == 4) {
       lcd.clear();
@@ -1379,7 +1376,6 @@ void mainMenu() {
       lcd.setCursor(7, 2);
       lcd.print("DC Load");
       batteryType = 5;
-      Serial.println("DC Load");
       updateDisplay = 0;
     } else {
       cursorCount = 0;

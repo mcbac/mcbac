@@ -6,7 +6,8 @@ These are the design files for mcbac-v2.
 
 ## Specification
 
-_The specification is subject to change without notice._
+_Since this is still in pre-production, the specification is subject to change
+without notice._
 
 ### Input/output
  - Input volts: 7-24v (28v max) (maximum output volts will be 2 volts below the input)
@@ -15,7 +16,7 @@ _The specification is subject to change without notice._
  - Output source current: 0-2A
  - Output sink current: 0-2A
  - Output type: linear with buck pre-regulator
- - External temperature sensor (NTC)
+ - External temperature sensor (10K NTC)
 
 ### Interface
  - 20x4 backlit LCD
