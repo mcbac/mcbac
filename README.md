@@ -31,11 +31,8 @@ quantities (50-100 units).
 ## License
 
 All files owned by the MCBAC designer(s) and/or MCBAC Technology (the company)
-are licensed under the terms of **The Clear BSD License**.
-
-Copyright (c) 2020 WestleyR. All rights reserved.
-
-See the [LICENSE file](./LICENSE) for more details.
+are licensed under the terms of **The Clear BSD License**. See the
+[LICENSE file](./LICENSE) for more details.
 
 <br>
 
